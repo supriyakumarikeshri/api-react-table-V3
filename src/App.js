@@ -5,9 +5,9 @@ import axios from 'axios';
 class App extends React.Component {
   constructor() {
     super();
-    this.state = {data: [""]};
+    this.state = {data: [""],filteredData: [""],searchInput:"",sortDirection:"",sortingIsRequired:false,sortColumn:""};
     this.tableHeading = "";
-  }
+   }
   componentDidMount(){
     axios.get(`http://starlord.hackerearth.com/TopRamen`)
       .then(res => {
@@ -16,7 +16,7 @@ class App extends React.Component {
             });
             const headerData = Object.keys(res.data[0]);
             this.setState({
-                tableHeading: headerData 
+                tableHeading: headerData ,sortingIsRequired :true  
             });
             
       })
@@ -25,46 +25,68 @@ class App extends React.Component {
       });
   }
   handleChange=(event)=>{
-    //search filter based on any td data
-      var arr = [];
+    //search filter based on first td data    
+    console.log(event.currentTarget);  
+       this.setState({
+                  searchInput: event.target.value
+             });
+      const {tableHeading}=this.state;
       if(event.target.value.length){
-              this.state.data.map((rowObj, i) => {
-                    Object.keys(rowObj).map((val, ind) => {
-                                    
-                                      if(typeof(rowObj[val])=="string")
-                                      {
-                                        if(rowObj[val].toLowerCase().includes(event.target.value.toLowerCase())){
-                                            //if any character in search filter which is getting here as(event.target.value),
-                                            //is present in any <td> of a <tr>, then that <tr> should be display, so push that <tr>
-                                            //obj in arr
-                                            arr.push(rowObj);
-                                           
-                                        }
-                                         
-                                  }
-                            })            
-              });
-              //state of tabledata is getting change accoring to the search filter 
+               let filteredData = this.state.data.filter((value,key) => {
+
+                return (value[tableHeading[0]].toLowerCase().includes(event.target.value.toLowerCase()));
+
+                });
               this.setState({
-                  data: arr
+                  filteredData: filteredData
              });
     } 
-    else{
-      this.componentDidMount();
-    }
-      
-
-  
-  }
-
+}
+ handleSort = (column,sortingIsRequired) =>{
+  if(sortingIsRequired){
+      const {sortDirection,data} = this.state;
+      console.log(sortDirection); 
+      const comparer = (a, b) => {
+        if(sortDirection=="" || sortDirection === "DESC"){
+              this.setState({
+                   sortDirection : "ASC"
+                }); 
+              return a[column] > b[column] ? 1 : -1; //making data in ascending order
+              
+          }else if(sortDirection === "ASC"){
+            this.setState({
+                   sortDirection : "DESC"
+               });
+            return a[column] < b[column] ? 1 : -1; //making data in descending order
+          }
+           
+        };
+        const sortedData = data.sort(comparer);
+         this.setState({
+            data : sortedData, sortColumn: column
+          });
+      }
+ }
   render() {
-    
-    const tableHeader = this.state.tableHeading && this.state.tableHeading.map(val=>  
+    const {filteredData,data,searchInput,tableHeading,sortDirection,sortingIsRequired,sortColumn}=this.state;
+    const searchplaceHolder=tableHeading ? "Search By "+tableHeading[0] + "......" : "";
+    const dataToDisplay = searchInput.length ? filteredData : data;
+    console.log(sortColumn);
+    const tableHeader = tableHeading && tableHeading.map((val,ind)=>  
                         {
-                            return (<th>{val}</th>);
+                            return (<th onClick={() => this.handleSort(val,sortingIsRequired)} key={ind}>{val}
+                                        {sortingIsRequired? <div style={{"display":sortColumn === val ? 'initial' : 'none',}}>
+                                             
+                                             {sortDirection=="ASC" ? (
+                                                  <div className="glyphicon glyphicon-menu-up" />
+                                                ) : (
+                                                  <div className="glyphicon glyphicon-menu-down" />
+                                              )}
+                                        </div>:""}
+                              </th>);
                         });
     
-    const tableData = this.state.data && this.state.data.map((rowObj, i) => {
+    const tableData = dataToDisplay && dataToDisplay.map((rowObj, i) => {
                                    let td = Object.keys(rowObj).map((val, ind) => {
                                         return <td key={ind}>{rowObj[val]}</td>  
                                    })
@@ -72,7 +94,7 @@ class App extends React.Component {
                     }); 
     return (
           <div>
-            <input type="text" className="searchbar" onChange={this.handleChange} placeholder="Search!" /> 
+            <input type="text" className="searchbar" onChange={this.handleChange} placeholder={searchplaceHolder} /> 
             <table id="customers">
               <thead>
                   <tr>
@@ -92,3 +114,4 @@ class App extends React.Component {
  //{data.map(buildRow)}
  
 export default App;
+ 
